@@ -1,3 +1,22 @@
+== About this fork ==
+
+This repository is a fork of RNNoise (recurrent neural network noise
+reduction) from Xiph.Org, with additional WebAssembly SIMD128 support
+for fast inference in browsers and workers:
+
+  Upstream: https://github.com/xiph/rnnoise
+            https://gitlab.xiph.org/xiph/rnnoise
+
+Changes here include src/vec_wasm.h and the vec.h branch for
+__wasm_simd128__, plus Emscripten-oriented build helpers (Dockerfile,
+build.sh, container_build.sh, .dockerignore). The algorithm, paper
+reference, model downloads, and training story below are inherited
+from upstream; this fork does not replace upstream maintenance.
+
+License remains BSD-3-Clause; see COPYING and file headers.
+
+== Upstream README (RNNoise) ==
+
 RNNoise is a noise suppression library based on a recurrent neural network.
 A description of the algorithm is provided in the following paper:
 
