@@ -23,6 +23,7 @@ noinst_HEADERS = src/arch.h  \
 		 src/vec_neon.h \
 		 src/vec.h \
 		 src/vec_avx.h \
+		 src/vec_wasm.h \
 		 src/x86/x86_arch_macros.h \
 		 src/x86/x86cpu.h \
 		 src/x86/dnn_x86.h

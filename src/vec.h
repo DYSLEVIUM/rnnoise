@@ -40,6 +40,9 @@
 #include "vec_avx.h"
 #elif (defined(__ARM_NEON__) || defined(__ARM_NEON)) && !defined(DISABLE_NEON)
 #include "vec_neon.h"
+#elif defined(__wasm_simd128__)
+/* WebAssembly SIMD support */
+#include "vec_wasm.h"
 #else
 
 #define MAX_INPUTS (2048)
