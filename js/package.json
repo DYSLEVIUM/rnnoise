@@ -1,0 +1,21 @@
+{
+  "name": "rnnoise-wasm-worklet",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c rollup.config.worklet.mjs && npm run build:host",
+    "build:worklet": "rollup -c rollup.config.worklet.mjs",
+    "build:host": "tsc -p tsconfig.host.json"
+  },
+  "dependencies": {
+    "wasm-feature-detect": "^1.6.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/audioworklet": "^0.0.54",
+    "rollup": "^4.18.0",
+    "rollup-plugin-esbuild": "^6.2.1",
+    "typescript": "~5.4.0"
+  }
+}

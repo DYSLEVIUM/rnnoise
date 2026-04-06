@@ -8,12 +8,100 @@ for fast inference in browsers and workers:
             https://gitlab.xiph.org/xiph/rnnoise
 
 Changes here include src/vec_wasm.h and the vec.h branch for
-__wasm_simd128__, plus Emscripten-oriented build helpers (Dockerfile,
-build.sh, container_build.sh, .dockerignore). The algorithm, paper
-reference, model downloads, and training story below are inherited
+__wasm_simd128__, Emscripten-oriented build helpers (Dockerfile,
+build.sh, container_build.sh, .dockerignore), and a JavaScript package
+in js/ that bundles an AudioWorklet processor (Rollup) and a main-thread
+host for denoising a MediaStreamTrack in the browser. The algorithm,
+paper reference, model downloads, and training story below are inherited
 from upstream; this fork does not replace upstream maintenance.
 
 License remains BSD-3-Clause; see COPYING and file headers.
+
+== Browser integration (Web Audio) ==
+
+Build the Wasm library (repo root), then the worklet bundle:
+
+% ./container_build.sh
+% cd js && npm install && npm run build
+
+Or, with Emscripten on PATH instead of Docker: ./build.sh from the repo
+root. Artifacts appear under dist/scalar/full/ and dist/simd/full/
+(rnnoise_simd.js, rnnoise_simd.wasm, and matching .d.ts). The JS build
+writes js/dist/rnnoise.denoise.worklet.js and host modules under
+js/dist/host/.
+
+Serve a fixed URL prefix for worklet + Wasm (example: /rnnoise-wasm/):
+
+  rnnoise-wasm/simd/full/rnnoise_simd.js
+  rnnoise-wasm/simd/full/rnnoise_simd.wasm
+  rnnoise-wasm/rnnoise.denoise.worklet.js
+
+If you use only assetsPath (default), addModule() loads:
+
+  `${assetsPath}rnnoise.denoise.worklet.js`
+
+Optional constructor options: assetsPath, workletUrl (absolute URL to the
+bundled worklet, if it is not next to the Wasm tree), debug (verbose logs).
+
+--- TypeScript / bundler ---
+
+  import { RNNoiseWorkletHost } from './path/to/js/dist/host/index.js';
+
+  async function startMicDenoise() {
+    if (!RNNoiseWorkletHost.isSupported()) {
+      throw new Error('AudioWorklet or Wasm SIMD is not available');
+    }
+    const audioContext = new AudioContext({ sampleRate: 48000 });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1 },
+    });
+    const track = stream.getAudioTracks()[0];
+
+    const host = new RNNoiseWorkletHost({
+      assetsPath: '/rnnoise-wasm/',
+      // workletUrl: 'https://cdn.example/rnnoise.denoise.worklet.js',
+    });
+    await host.init({ audioContext, track });
+    const denoised = host.getProcessedTrack();
+    return { host, audioContext, denoised, micTrack: track };
+  }
+
+  const { host, denoised } = await startMicDenoise();
+  // use denoised; when done:
+  await host.setEnabled(false); // graph still runs, passthrough audio
+  await host.destroy();
+
+--- Browser ES module (no bundler) ---
+
+  Serve the full contents of js/dist/host/ under a path such as
+  /rnnoise-host/ (index.js plus the sibling .js files). Then:
+
+  import { RNNoiseWorkletHost } from '/rnnoise-host/index.js';
+
+  const audioContext = new AudioContext({ sampleRate: 48000 });
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const host = new RNNoiseWorkletHost({ assetsPath: '/rnnoise-wasm/' });
+  await host.init({ audioContext, track: stream.getAudioTracks()[0] });
+  const denoised = host.getProcessedTrack();
+
+--- WebRTC (minimal) ---
+
+  const pc = new RTCPeerConnection();
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const mic = stream.getAudioTracks()[0];
+  const host = new RNNoiseWorkletHost({ assetsPath: '/rnnoise-wasm/' });
+  await host.init({
+    audioContext: new AudioContext({ sampleRate: 48000 }),
+    track: mic,
+  });
+  const out = host.getProcessedTrack()!;
+  pc.addTrack(out, new MediaStream([out]));
+  // On renegotiation or cleanup, stop tracks and call host.destroy().
+
+RNNoise uses 48 kHz mono; prefer a 48 kHz AudioContext. AudioWorklet needs a
+secure context (HTTPS or localhost). For a conferencing SDK, pass the SDK’s
+microphone MediaStreamTrack into init(), then publish or replace the sent
+audio track with getProcessedTrack() using that SDK’s track-replacement API.
 
 == Upstream README (RNNoise) ==
 

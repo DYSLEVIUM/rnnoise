@@ -27,3 +27,6 @@ doc/latex/
 *.log
 
 datasets.txt
+
+js/node_modules/
+js/dist/

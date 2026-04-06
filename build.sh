@@ -128,7 +128,7 @@ function copy_artifacts() {
 }
 
 function main() {
-    git clean -f -d || true
+    git clean -f -d -e src/vec_wasm.h || true
 
     echo "Running autogen.sh"
     "$SCRIPT_DIR/autogen.sh"
@@ -138,7 +138,7 @@ function main() {
 
     copy_artifacts
 
-    git clean -f -d || true
+    git clean -f -d -e src/vec_wasm.h || true
 
     return 0
 }
